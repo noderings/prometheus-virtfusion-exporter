@@ -57,7 +57,7 @@ func TestListServers_Pagination(t *testing.T) {
 				},
 				"meta": map[string]interface{}{"current_page": 1, "last_page": 2},
 			}
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		case 2:
 			resp := map[string]interface{}{
 				"data": []map[string]interface{}{
@@ -65,7 +65,7 @@ func TestListServers_Pagination(t *testing.T) {
 				},
 				"meta": map[string]interface{}{"current_page": 2, "last_page": 2},
 			}
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	}))
 	defer srv.Close()

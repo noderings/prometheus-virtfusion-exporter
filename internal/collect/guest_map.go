@@ -208,7 +208,7 @@ func RemoteStateLooksLive(raw json.RawMessage) bool {
 		return false
 	}
 	rs := asObject(d.RemoteState)
-	if rs == nil || len(rs) == 0 {
+	if len(rs) == 0 {
 		return false
 	}
 	if _, ok := cpuRatio(rs); ok {
