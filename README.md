@@ -8,14 +8,16 @@ Background workers refresh an in-memory snapshot. The `/metrics` handler **never
 
 | Worker | Default interval | VF endpoint |
 |--------|-----------------|-------------|
-| inventory | 30 s | `GET /connect`, `GET /servers?type=simple` (paginated). Emits `vf_server_info` for `NR-` names only. |
+| inventory | 30 s | `GET /connect`, `GET /servers?type=simple` (paginated). Emits `vf_server_info` for `NR-` names only. Does **not** emit `vf_guest_up` — the simple list has no power field (`commissioned=3` / `state=complete` means built). |
 | capacity | 60 s | `GET /compute/hypervisors` (paginated), then **one** `GET /compute/hypervisors/groups/{id}/resources` per unique group. Emits per-hypervisor `vf_*_allocated` / `vf_*_max` (all guests on that host). |
-| guest | 45 s | `GET /servers/{id}?remoteState=true` for **running NR-** servers only (skipped if last inventory failed) |
-| traffic | 10 min | `GET /servers/{id}/traffic` for the same NR- running set |
+| guest | 45 s | `GET /servers/{id}?remoteState=true` for **built NR-** servers (including stopped). Emits `vf_guest_up` 1 when remoteState has live stats, 0 when it is empty/false. Skipped if last inventory failed. |
+| traffic | 10 min | `GET /servers/{id}/traffic` for the same NR- built set |
 
-Guest and traffic workers scrape **only** servers whose name starts with `NR-` (case-insensitive) **and** look running. `vf_server_info` is also NR-only. Non-NR guests stay on the cheap simple list in memory so they can be skipped — they are **not** fetched with `remoteState`.
+Guest and traffic workers scrape servers whose name starts with `NR-` (case-insensitive) that are installed and not suspended. `vf_server_info` is also NR-only. Non-NR guests stay on the cheap simple list in memory so they can be skipped — they are **not** fetched with `remoteState`.
 
 Overallocation (sold CPU / memory / disk) comes from `GET /compute/hypervisors/groups/{id}/resources`. That payload is already summed per hypervisor for **every** guest (NodeRings and foreign), so the exporter does not `GET /servers/{id}` for non-NR VMs.
+
+The Global API does not expose live hypervisor-total CPU/memory/disk usage. Per-VM `vf_cpu_usage_ratio` / `vf_memory_usage_bytes` / `vf_fs_used_bytes` stay on guest `remoteState` for VM detail pages only.
 
 ## Usage
 
@@ -74,4 +76,4 @@ make docker-build
 
 ## Image
 
-`harbor.noderings.com/nrings/prometheus-virtfusion-exporter`
+`harbor.noderings.com/noderings/prometheus-virtfusion-exporter`

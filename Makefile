@@ -1,4 +1,4 @@
-IMG ?= harbor.noderings.com/nrings/prometheus-virtfusion-exporter
+IMG ?= harbor.noderings.com/noderings/prometheus-virtfusion-exporter
 TAG ?= dev
 PLATFORMS ?= linux/amd64,linux/arm64
 

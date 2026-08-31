@@ -149,6 +149,8 @@ func (c *Client) GetServerRemoteState(ctx context.Context, serverID int) (json.R
 type Hypervisor struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
+	IP      string `json:"ip"`
+	Port    int    `json:"port"`
 	GroupID int    `json:"group_id"`
 	Enabled bool   `json:"enabled"`
 	Group   *struct {

@@ -34,6 +34,10 @@ var (
 		"NodeRings VirtFusion server (name prefix NR-)",
 		[]string{"name", "server_id", "uuid", "hypervisor_id"}, nil)
 
+	GuestUp = prometheus.NewDesc("vf_guest_up",
+		"1 if GET /servers/{id}?remoteState=true returned live guest stats",
+		[]string{"name", "server_id", "uuid"}, nil)
+
 	CPUUsageRatio = prometheus.NewDesc("vf_cpu_usage_ratio",
 		"CPU usage 0-1",
 		[]string{"name", "server_id", "uuid"}, nil)

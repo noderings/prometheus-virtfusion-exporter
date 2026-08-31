@@ -26,7 +26,8 @@ const (
 // Collect fetches hypervisor inventory and per-host allocated/max from the
 // group resources API. allocated already includes every guest on that host
 // (NodeRings and foreign) — the VirtFusion analogue of summing PVE
-// cluster.resources without per-VM HTTP.
+// cluster.resources without per-VM HTTP. Live host Use is not collected:
+// the Global API does not expose hypervisor-total CPU/memory/disk usage.
 func (cc *CapacityCollector) Collect(ctx context.Context) ([]*dto.MetricFamily, error) {
 	var families []*dto.MetricFamily
 

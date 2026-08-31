@@ -2,6 +2,7 @@ package collect
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
@@ -26,7 +27,12 @@ func NewGuestCollector(client VFClient, concurrency int, timeout time.Duration, 
 	}
 }
 
-// Collect fetches remoteState for running NR- servers concurrently.
+func guestUpFamily(srv ServerSummary, up float64) *dto.MetricFamily {
+	return gaugeFamily(metrics.GuestUp, up, srv.Name, strconv.Itoa(srv.ID), srv.UUID)
+}
+
+// Collect fetches remoteState for built NR- servers concurrently and emits
+// vf_guest_up from whether the payload looks live (not inventory commissioned).
 func (gc *GuestCollector) Collect(ctx context.Context, servers []ServerSummary) []*dto.MetricFamily {
 	start := time.Now()
 	defer func() {
@@ -60,6 +66,7 @@ func (gc *GuestCollector) Collect(ctx context.Context, servers []ServerSummary) 
 			if err != nil {
 				log.Warn().Err(err).Int("server_id", srv.ID).Str("name", srv.Name).Msg("remoteState failed")
 				metrics.RemoteStateErrorsTotal.WithLabelValues("fetch").Inc()
+				results[idx] = result{families: []*dto.MetricFamily{guestUpFamily(srv, 0)}}
 				return
 			}
 
@@ -67,9 +74,15 @@ func (gc *GuestCollector) Collect(ctx context.Context, servers []ServerSummary) 
 			if err != nil {
 				log.Warn().Err(err).Int("server_id", srv.ID).Msg("mapRemoteState failed")
 				metrics.RemoteStateErrorsTotal.WithLabelValues("parse").Inc()
+				results[idx] = result{families: []*dto.MetricFamily{guestUpFamily(srv, 0)}}
 				return
 			}
 
+			up := 0.0
+			if RemoteStateLooksLive(raw) {
+				up = 1
+			}
+			families = append(families, guestUpFamily(srv, up))
 			results[idx] = result{families: families}
 		}(i, s)
 	}

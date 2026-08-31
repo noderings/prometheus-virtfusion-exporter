@@ -157,15 +157,15 @@ func HasNamePrefix(name, prefix string) bool {
 	return len(name) >= len(prefix) && strings.EqualFold(name[:len(prefix)], prefix)
 }
 
-// FilterServers returns NodeRings servers that look running. Used before
-// expensive GET /servers/{id}?remoteState=true and /traffic.
+// FilterServers returns built NodeRings guests to scrape with remoteState/traffic.
+// Stopped guests are included so vf_guest_up can be 0; installing/suspended are not.
 func FilterServers(servers []ServerSummary, prefix string) []ServerSummary {
 	var out []ServerSummary
 	for _, s := range servers {
 		if !HasNamePrefix(s.Name, prefix) {
 			continue
 		}
-		if !s.IsRunning() {
+		if !shouldScrapeGuest(s) {
 			continue
 		}
 		out = append(out, s)
@@ -173,20 +173,21 @@ func FilterServers(servers []ServerSummary, prefix string) []ServerSummary {
 	return out
 }
 
-// IsRunning is best-effort from the simple list (no live libvirt).
-func (s ServerSummary) IsRunning() bool {
+// shouldScrapeGuest is true for installed guests. VirtFusion simple lists often
+// omit power: commissioned=3 / state=complete means built, not running.
+func shouldScrapeGuest(s ServerSummary) bool {
 	if s.Suspended {
 		return false
 	}
 	st := strings.ToLower(strings.TrimSpace(s.Status))
 	switch st {
-	case "running", "active", "complete":
-		return true
-	case "stopped", "offline", "suspended", "pending", "allocated", "installing":
+	case "pending", "allocated", "installing", "suspended":
 		return false
 	}
-	// Simple listing uses commissioned (3 = built) instead of status.
-	return s.Commissioned >= 3
+	if s.Commissioned > 0 && s.Commissioned < 3 {
+		return false
+	}
+	return true
 }
 
 func gaugeFamily(desc *prometheus.Desc, value float64, labelValues ...string) *dto.MetricFamily {

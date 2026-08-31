@@ -60,6 +60,27 @@ func familyValue(f *dto.MetricFamily) float64 {
 	return 0
 }
 
+func TestRemoteStateLooksLive(t *testing.T) {
+	cases := []struct {
+		name string
+		raw  string
+		want bool
+	}{
+		{name: "lab cpu object", raw: `{"id":1,"uuid":"u","name":"n","remoteState":{"cpu":12}}`, want: true},
+		{name: "false remoteState", raw: `{"id":1,"uuid":"u","name":"n","remoteState":false}`, want: false},
+		{name: "missing remoteState", raw: `{"id":1,"uuid":"u","name":"n"}`, want: false},
+		{name: "empty object", raw: `{"id":1,"uuid":"u","name":"n","remoteState":{}}`, want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := collect.RemoteStateLooksLive(json.RawMessage(tc.raw))
+			if got != tc.want {
+				t.Fatalf("got %v want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestMapRemoteState_FullFixture(t *testing.T) {
 	families, err := collect.MapRemoteState(json.RawMessage(fixtureRemoteState))
 	if err != nil {

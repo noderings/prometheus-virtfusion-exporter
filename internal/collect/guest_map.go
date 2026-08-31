@@ -185,18 +185,51 @@ func parseFSInfo(agent map[string]any) []FSInfoEntry {
 	}
 }
 
-// MapRemoteState maps a raw VirtFusion remoteState JSON to Prometheus metric families.
-// Tolerates missing keys — omits metrics for absent data rather than guessing.
-func MapRemoteState(raw json.RawMessage) ([]*dto.MetricFamily, error) {
+func unwrapServerPayload(raw json.RawMessage) json.RawMessage {
 	raw = bytes.TrimSpace(raw)
 	if len(raw) > 0 && raw[0] == '{' {
 		var envelope struct {
 			Data json.RawMessage `json:"data"`
 		}
 		if err := json.Unmarshal(raw, &envelope); err == nil && len(bytes.TrimSpace(envelope.Data)) > 2 {
-			raw = envelope.Data
+			return envelope.Data
 		}
 	}
+	return raw
+}
+
+// RemoteStateLooksLive reports whether GET /servers/{id}?remoteState=true has
+// hypervisor stats. Empty / false / missing remoteState means the guest is off.
+// VirtFusion simple lists do not expose power; commissioned=3 is install-complete.
+func RemoteStateLooksLive(raw json.RawMessage) bool {
+	raw = unwrapServerPayload(raw)
+	var d RemoteStateData
+	if err := json.Unmarshal(raw, &d); err != nil {
+		return false
+	}
+	rs := asObject(d.RemoteState)
+	if rs == nil || len(rs) == 0 {
+		return false
+	}
+	if _, ok := cpuRatio(rs); ok {
+		return true
+	}
+	if _, _, ok := memoryBytes(rs); ok {
+		return true
+	}
+	if _, _, ok := diskBytes(rs); ok {
+		return true
+	}
+	if _, _, ok := netBytes(rs); ok {
+		return true
+	}
+	return false
+}
+
+// MapRemoteState maps a raw VirtFusion remoteState JSON to Prometheus metric families.
+// Tolerates missing keys — omits metrics for absent data rather than guessing.
+func MapRemoteState(raw json.RawMessage) ([]*dto.MetricFamily, error) {
+	raw = unwrapServerPayload(raw)
 
 	var d RemoteStateData
 	if err := json.Unmarshal(raw, &d); err != nil {

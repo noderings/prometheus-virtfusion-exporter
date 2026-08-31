@@ -18,7 +18,7 @@ func NewTrafficCollector(client VFClient, namePrefix string) *TrafficCollector {
 	return &TrafficCollector{client: client, namePrefix: namePrefix}
 }
 
-// Collect fetches monthly traffic for running NR- servers.
+// Collect fetches monthly traffic for built NR- servers.
 func (tc *TrafficCollector) Collect(ctx context.Context, servers []ServerSummary) []*dto.MetricFamily {
 	filtered := FilterServers(servers, tc.namePrefix)
 	var families []*dto.MetricFamily
