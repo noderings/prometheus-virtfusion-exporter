@@ -1,0 +1,6 @@
+prometheus-virtfusion-exporter
+dist/
+build/
+*.exe
+*.test
+*.out
